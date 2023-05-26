@@ -17,7 +17,7 @@ def play_sound(fname):
 w, h = 600, 600
 step = 20
 fire_timer = 70
-num_blocks = 50
+num_blocks = 1
 cols_rate = 8
 block_generation_rate = 70
 
@@ -113,9 +113,10 @@ def fire():
 
     if ready_fires != 0:
         play_sound('audios\\laser_shot.wav')
-        fire = turtle.Turtle('circle')
+        fire = turtle.Turtle('square')
         fire.color('blue')
         fire.penup()
+        fire.shapesize(1.5, .5, 1)
         fire.speed(0)
         fire.goto(car.xcor(), car.ycor() + step)
 
@@ -180,7 +181,7 @@ def move_fires():
 
 def collision_with_blocks():
     for block in blocks:
-        if block.xcor() == car.xcor() and block.ycor() == car.ycor():
+        if block.xcor() == car.xcor() and car.distance(block) < 25:
             return True
     return False
 
@@ -204,6 +205,17 @@ def write_pen(fire=False):
     pen.clear()
     pen.write(pen_content.format(score, high_score, fire), align='center', font=(font, 16, 'normal'))
 
+def make_move(move):
+    if move == 'fire':
+        fire()
+    elif move == 'up':
+        go_up()
+    elif move == 'left':
+        go_left()
+    elif move == 'right':
+        go_right()
+    elif move == 'down':
+        go_down()
 
 wn.listen()
 wn.onkeypress(go_left, 'a')
@@ -232,6 +244,8 @@ while True:
         fire_coldown = fire_timer
         write_pen(0)
 
+    # random_move = random.choice(['fire', 'up', 'down', 'right', 'left'])
+    # make_move(random_move)
     wn.update()
 
     if done:
@@ -253,4 +267,4 @@ while True:
         done = True
 
     n_iterations += 1
-    time.sleep(.05)
+    time.sleep(.1)
