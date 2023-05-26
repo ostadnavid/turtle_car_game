@@ -2,6 +2,11 @@
 
 this is the game that i wrote in turtle python. 
 
+make sure you have numpy installed:
+```
+pip install numpy
+```
+
 sounds are only will be played in windows operating system.
 
 changing the values to strange values might broke the game.
