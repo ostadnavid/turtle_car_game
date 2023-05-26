@@ -17,7 +17,7 @@ def play_sound(fname):
 w, h = 600, 600
 step = 20
 fire_timer = 70
-num_blocks = 1
+num_blocks = 70
 cols_rate = 8
 block_generation_rate = 70
 
