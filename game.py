@@ -17,16 +17,38 @@ def play_sound(fname):
 w, h = 600, 600
 step = 20
 fire_timer = 70
-num_blocks = 70
-cols_rate = 8
+num_blocks = 60
+n_cols = 12
+padding_col = step * 2
 block_generation_rate = 70
+window_size = 9 # this is the size of the vision of model
 
 font = 'Bitstream Vera Sans Mono'
 
 score = 0
 high_score = 0
 
-x_range = np.arange(-1 * step * cols_rate, step * cols_rate + 1, step*1.5).tolist()
+x_range = np.arange(-1 * step * n_cols, step * n_cols ,padding_col).tolist()
+x_range_with_boundries = x_range.copy()
+y_range = np.arange(-1*(h / 2 - step * 2),(h / 2 - step * 2)+1, step).tolist()
+y_range_with_boundries = y_range.copy()
+
+for i in range(window_size//2):
+    x_range_with_boundries.append(max(x_range_with_boundries) + padding_col)
+    x_range_with_boundries.insert(0, min(x_range_with_boundries) - padding_col)
+
+    y_range_with_boundries.append(max(y_range_with_boundries) + step)
+    y_range_with_boundries.insert(0, min(y_range_with_boundries) - step)
+
+base_image = np.zeros(shape=(len(y_range_with_boundries), len(x_range_with_boundries)))
+
+# set the boundry blocks
+for i in range(window_size//2):
+    base_image[i,:] = -1
+    base_image[-i-1,:] = -1
+    base_image[:,i] = -1
+    base_image[:,-i-1] = -1
+
 
 wn = turtle.Screen()
 wn.setup(w, h)
@@ -39,9 +61,8 @@ car.shape('square')
 car.penup()
 car.speed(0)
 car.color('white')
-car.goto(random.choice(x_range), -1 * h / 2 + step * 3)
+car.goto(random.choice(x_range), -1 * h / 2 + step*4)
 car.direction = 'stop'
-
 pen_content = 'Score: {}\nHigh Score: {}\nFire: {}'
 
 pen = turtle.Turtle()
@@ -98,12 +119,12 @@ def go_down():
 
 def go_left():
     if car.xcor() > min(x_range):
-        car.setx(car.xcor() - step * 1.5)
+        car.setx(car.xcor() - padding_col)
 
 
 def go_right():
     if car.xcor() < max(x_range):
-        car.setx(car.xcor() + step * 1.5)
+        car.setx(car.xcor() + padding_col)
 
 
 def fire():
@@ -118,7 +139,7 @@ def fire():
         fire.penup()
         fire.shapesize(1.5, .5, 1)
         fire.speed(0)
-        fire.goto(car.xcor(), car.ycor() + step)
+        fire.goto(car.xcor(), car.ycor())
 
         fires.append(fire)
 
@@ -216,6 +237,57 @@ def make_move(move):
         go_right()
     elif move == 'down':
         go_down()
+    elif move == 'stay':
+        pass
+
+def get_image(n=window_size):
+    global block # 1
+    global fires
+    image = base_image.copy()
+
+    for block in blocks:
+        x_block = min(x_range, key=lambda z: abs(z - block.xcor()))
+        y_block = min(y_range, key=lambda z: abs(z - block.ycor()))
+
+        x_block = x_range.index(x_block) + window_size//2
+        y_block = y_range.index(y_block) + window_size//2
+        image[-1*y_block-1, x_block] = 1
+    
+    for fire in fires:
+        x_fire = min(x_range, key=lambda z: abs(z - fire.xcor()))
+        y_fire = min(y_range, key=lambda z: abs(z - fire.ycor()))
+
+        x_fire = x_range.index(x_fire) + window_size//2
+        y_fire = y_range.index(y_fire) + window_size//2
+
+        image[-1*y_fire-1, x_fire] = 3
+
+    x_car = min(x_range, key=lambda z: abs(z - car.xcor()))
+    y_car = min(y_range, key=lambda z: abs(z - car.ycor()))
+    x_car = x_range.index(x_car) + window_size//2
+    y_car = y_range.index(y_car) + window_size//2
+
+    image[-1*y_car-1, x_car] = 2
+
+    for i in range(n//2, image.shape[0] - n//2):
+        for j in range(n//2, image.shape[1] - n//2):
+            if image[i, j] == 2:
+                window = image[i-n//2:i+n//2+1, j-n//2:j+n//2+1]
+
+    return window
+
+def get_state():
+    global fire_coldown
+    window = get_image()
+    fires = ready_fires
+    fire_down = 1 - fire_coldown/fire_timer
+    y_cord = y_range.index(min(y_range, key=lambda z: abs(z - car.ycor()))) + window_size//2
+    x_index = x_range.index(min(x_range, key=lambda z: abs(z - car.xcor())))
+    
+    # total input_size = 85
+
+    return window, fires, fire_coldown, y_cord, x_index
+
 
 wn.listen()
 wn.onkeypress(go_left, 'a')
@@ -234,8 +306,6 @@ ready_fires = 0
 done = False
 
 while True:
-    score = compute_score()
-    write_pen(fire_coldown)
     if 0 < fire_coldown:
         fire_coldown -= 1
     if fire_coldown == 0:
@@ -243,14 +313,16 @@ while True:
         ready_fires += 1
         fire_coldown = fire_timer
         write_pen(0)
-
-    # random_move = random.choice(['fire', 'up', 'down', 'right', 'left'])
+    
+    # random_move = random.choice(['fire', 'up', 'down', 'right', 'left', 'stay'])
     # make_move(random_move)
+
     wn.update()
 
     if done:
         reset()
         time.sleep(2.5)
+
     # beginning of the game
     if car.direction == 'stop':
         car.direction = 'go'
@@ -267,4 +339,11 @@ while True:
         done = True
 
     n_iterations += 1
+    score = compute_score()
+    
+    write_pen(fire_coldown)
+
+    print(get_state())
+    print('-'*40)
+
     time.sleep(.1)
