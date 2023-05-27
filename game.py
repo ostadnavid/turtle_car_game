@@ -286,7 +286,7 @@ def get_state():
     
     # total input_size = 85
 
-    return window, fires, fire_coldown, y_cord, x_index
+    return window, fires, fire_down, y_cord, x_index
 
 
 wn.listen()
